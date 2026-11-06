@@ -1,0 +1,44 @@
+/* Landing page only. The palette and resets come from style.css. */
+
+.hero { padding-block: 40px 28px; }
+.hero h1 {
+  font-size: clamp(26px, 4.5vw, 40px); line-height: 1.15;
+  letter-spacing: -0.02em; margin: 0 0 14px; max-width: 18em;
+}
+.hero .lead { font-size: 17px; color: var(--muted); max-width: 40em; margin: 0 0 24px; }
+.cta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.cta a.primary {
+  display: inline-block; text-decoration: none; font-weight: 600; font-size: 16px;
+  background: var(--accent); color: #fff; padding: 12px 22px; border-radius: 8px;
+}
+.cta a.primary:hover { filter: brightness(1.08); }
+.cta .small { font-size: 13px; color: var(--muted); }
+
+section.block { padding-block: 28px; border-top: 1px solid var(--line); }
+section.block h2 {
+  font-size: 19px; text-transform: none; letter-spacing: -0.01em;
+  color: var(--text); margin: 0 0 12px;
+}
+section.block p { max-width: 42em; }
+section.block ul { max-width: 42em; padding-left: 20px; }
+section.block li { margin-bottom: 7px; }
+
+.examples { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 6px; }
+.examples th, .examples td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.examples th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.examples td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.examples .yes { color: var(--ok); }
+.examples .no { color: var(--warn); }
+
+.checks { list-style: none; padding: 0; }
+.checks li { padding-left: 24px; position: relative; }
+.checks li::before {
+  content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700;
+}
+
+footer {
+  margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line);
+  font-size: 12.5px; color: var(--muted);
+}
+footer a { color: var(--muted); }
+footer h3 { font-size: 12.5px; margin: 0 0 4px; color: var(--text); }

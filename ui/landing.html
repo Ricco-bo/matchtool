@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Namensabgleich — zwei Excel-Listen abgleichen trotz Tippfehlern</title>
+<meta name="description" content="Zwei Namenslisten abgleichen: Lieferanten gegen Kreditoren, Kunden gegen CRM. Erkennt Tippfehler, Umlaute, Abkürzungen und Rechtsformen. Läuft im Browser, ohne Upload.">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="landing.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Zwei Namenslisten abgleichen — trotz Tippfehlern, Umlauten und Rechtsformen</h1>
+    <p class="lead">
+      Lieferanten gegen Kreditoren. Kunden gegen CRM-Export. Excel gegen SAP.
+      Der Abgleich, für den es kein SVERWEIS gibt, weil die Namen nie exakt
+      gleich geschrieben sind.
+    </p>
+    <div class="cta">
+      <a class="primary" href="matchtool.html">Tool öffnen →</a>
+      <span class="small">Kostenlos · ohne Anmeldung · ohne Upload</span>
+    </div>
+    <div class="privacy" style="margin-top:20px">Ihre Listen verlassen Ihren Computer nicht</div>
+  </header>
+
+  <section class="block">
+    <h2>Das Problem</h2>
+    <p>
+      Dieselbe Firma steht in zwei Systemen — und in keinem gleich. SVERWEIS
+      findet nichts, also wird von Hand verglichen. Bei 800 Zeilen ist das ein
+      verlorener Nachmittag, und beim nächsten Export fängt es von vorne an.
+    </p>
+    <table class="examples">
+      <tr><th>Liste A</th><th>Liste B</th><th>Treffer</th></tr>
+      <tr>
+        <td>Müller Handels GmbH</td>
+        <td>MUELLER HANDELS G.M.B.H.</td>
+        <td class="yes">100 %</td>
+      </tr>
+      <tr>
+        <td>Müller GmbH</td>
+        <td>Müller Gesellschaft mit beschränkter Haftung</td>
+        <td class="yes">100 %</td>
+      </tr>
+      <tr>
+        <td>Hoffmann Logistik GmbH &amp; Co. KG</td>
+        <td>Hofmann Logistik</td>
+        <td class="yes">100 %</td>
+      </tr>
+      <tr>
+        <td>Schmitt Industrieanlagen</td>
+        <td>Schmidt Industrieanlagen</td>
+        <td class="yes">96 %</td>
+      </tr>
+      <tr>
+        <td>Müller GmbH</td>
+        <td>Müller <b>AG</b></td>
+        <td class="no">78 %</td>
+      </tr>
+    </table>
+    <p style="margin-top:14px">
+      Die letzte Zeile ist der Punkt: eine andere Rechtsform ist eine andere
+      Firma, und das Tool sagt das auch. Ein ausgeschriebenes
+      <em>Gesellschaft mit beschränkter Haftung</em> dagegen ist dieselbe — ohne
+      dass jemand eine Abkürzungsliste pflegen muss.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Wie es funktioniert</h2>
+    <ul>
+      <li><b>Zwei Listen laden.</b> Excel-Datei oder CSV hineinziehen — oder die Zellen in Excel markieren, kopieren und einfügen.</li>
+      <li><b>Abgleichen.</b> Groß- und Kleinschreibung, Umlaute, Satzzeichen und Leerzeichen werden vor dem Vergleich vereinheitlicht.</li>
+      <li><b>Unsichere Fälle bestätigen.</b> Was nach der Bereinigung identisch ist, wird automatisch übernommen. Der Rest kommt einzeln zur Bestätigung — mit Tastatur, nicht mit der Maus.</li>
+      <li><b>Zurück nach Excel.</b> Der Export enthält Ihre eigenen Spalten, nicht nur die beiden Namen. Kein Zurück-VLOOKUPen.</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Ihre Daten bleiben bei Ihnen</h2>
+    <p>
+      Der Abgleich läuft vollständig in Ihrem Browser. Es gibt keinen Upload,
+      keinen Server, der Ihre Listen sieht, und kein Konto.
+    </p>
+    <ul class="checks">
+      <li><b>Prüfen Sie es selbst:</b> Internet trennen — das Tool funktioniert weiter.</li>
+      <li><b>Oder im Netzwerkregister:</b> Entwicklertools öffnen, Tab „Netzwerk“ — nach dem Laden der Seite wird nichts mehr gesendet.</li>
+      <li><b>Quelltext offen:</b> <a href="https://github.com/">auf GitHub einsehbar</a> — keine fremden Bibliotheken, 62 KB insgesamt.</li>
+      <li><b>Für Ihr Netzwerk:</b> <a href="matchtool.html" download="namensabgleich.html">die Datei herunterladen</a> und intern ablegen. Eine HTML-Datei, kein Installer.</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Was es kostet</h2>
+    <p>
+      Nichts. Das Tool ist kostenlos und ohne Begrenzung nutzbar.
+    </p>
+    <p>
+      Wenn Sie so etwas regelmäßig brauchen, größere Listen abgleichen oder eine
+      Version mit Ihren eigenen Bereinigungsregeln möchten — etwa Ihre internen
+      Nummernkreise oder Namenskonventionen — schreiben Sie mir:
+      <a href="mailto:ricco.borusiak@gmail.com?subject=Namensabgleich">ricco.borusiak@gmail.com</a>.
+    </p>
+  </section>
+
+  <footer>
+    <h3>Impressum</h3>
+    <p>
+      <!-- TODO: Pflichtangaben nach § 5 DDG ergänzen: Name, Anschrift, E-Mail. -->
+      Ricco Borusiak · <a href="mailto:ricco.borusiak@gmail.com">ricco.borusiak@gmail.com</a><br>
+      <em>Anschrift ergänzen.</em>
+    </p>
+    <p style="margin-top:10px">
+      Diese Seite setzt keine Cookies, bindet keine externen Dienste ein und
+      verarbeitet keine personenbezogenen Daten. Die abgeglichenen Listen werden
+      ausschließlich lokal in Ihrem Browser verarbeitet und nicht übertragen.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

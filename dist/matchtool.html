@@ -1,0 +1,1812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>matchtool — match two lists of names</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --text: #16191d;
+  --muted: #646c78;
+  --line: #dfe3e8;
+  --accent: #1a6fb5;
+  --accent-soft: #cdebfc;      /* the light blue of the original input sheet */
+  --list-b: #b58a00;
+  --list-b-soft: #fff4c2;      /* and its yellow */
+  --ok: #16794a;
+  --ok-soft: #d8f0e2;
+  --warn: #8a5a00;
+  --warn-soft: #fbeccb;
+  --bad: #a52a2a;
+  --bad-soft: #f6dcdc;
+  --radius: 8px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171a;
+    --surface: #1c2024;
+    --surface-2: #23282e;
+    --text: #e6e9ed;
+    --muted: #9aa4b0;
+    --line: #333a42;
+    --accent: #6cb6ef;
+    --accent-soft: #16354d;
+    --list-b: #e0b83c;
+    --list-b-soft: #3d3218;
+    --ok: #5cc38d;
+    --ok-soft: #143626;
+    --warn: #e2b661;
+    --warn-soft: #3a2f16;
+    --bad: #ef8b8b;
+    --bad-soft: #3c1f1f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Any rule that sets `display` beats the browser's own [hidden] { display:none },
+   so several panels here were showing while still marked hidden. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 64px; padding-inline: 20px; }
+
+header h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--muted); }
+header .privacy {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 5px 10px;
+  background: var(--ok-soft); color: var(--ok);
+  border-radius: 999px; font-size: 12.5px; font-weight: 600;
+}
+
+.header-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+button.link {
+  background: none; border: none; padding: 0; color: var(--accent);
+  font-size: 12.5px; font-weight: 600; text-decoration: underline;
+}
+
+.tutorial {
+  position: relative; margin-top: 20px; padding: 16px 18px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent); border-radius: var(--radius);
+}
+.tutorial h3 { margin: 0 0 8px; font-size: 14px; }
+.tutorial ol { margin: 0; padding-left: 20px; }
+.tutorial li { margin-bottom: 6px; }
+.tutorial code {
+  font: 12px var(--mono); background: var(--surface-2);
+  padding: 1px 4px; border-radius: 4px;
+}
+.tutorial .note { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+.tutorial .close {
+  position: absolute; top: 8px; right: 8px;
+  width: 26px; height: 26px; padding: 0; line-height: 1; font-size: 18px;
+  background: none; color: var(--muted); border: none;
+}
+.tutorial .close:hover { color: var(--text); background: var(--surface-2); }
+
+h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); margin: 32px 0 10px; font-weight: 600;
+}
+
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .panels { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px; border-top: 3px solid var(--accent);
+}
+.panel[data-list="B"] { border-top-color: var(--list-b); }
+.panel h3 { margin: 0 0 2px; font-size: 14px; }
+.panel .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
+
+.drop {
+  border: 1.5px dashed var(--line); border-radius: var(--radius);
+  padding: 18px 12px; text-align: center; color: var(--muted);
+  cursor: pointer; transition: background .12s, border-color .12s;
+}
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.drop strong { color: var(--text); }
+
+textarea {
+  width: 100%; min-height: 84px; margin-top: 10px; padding: 8px;
+  font: 12px/1.45 var(--mono); resize: vertical;
+  color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 6px;
+}
+textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.cols { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; font-size: 12.5px; }
+.cols label { display: flex; gap: 5px; align-items: center; color: var(--muted); }
+select, input[type="number"] {
+  font: inherit; font-size: 12.5px; padding: 3px 6px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 5px;
+}
+.loaded { margin-top: 8px; font-size: 12.5px; color: var(--ok); font-weight: 600; }
+
+.options {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px;
+}
+.opt { display: flex; flex-direction: column; gap: 4px; }
+.opt span { font-size: 11.5px; color: var(--muted); }
+.opt small { font-size: 11px; color: var(--muted); }
+.opt input[type="number"] { width: 84px; }
+
+button {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border-radius: 6px; border: 1px solid transparent; padding: 8px 16px;
+  background: var(--accent); color: #fff;
+}
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
+button.ghost:hover:not(:disabled) { background: var(--surface-2); }
+button.accept { background: var(--ok); }
+button.reject { background: var(--bad); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.tile b { display: block; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile span { font-size: 12.5px; color: var(--muted); }
+.tile.ok b { color: var(--ok); }
+.tile.warn b { color: var(--warn); }
+.tile.bad b { color: var(--bad); }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px;
+}
+.progress { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+.side { border-left: 3px solid var(--accent); padding-left: 10px; }
+.side.b { border-left-color: var(--list-b); }
+.side .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.side .name { font-size: 15px; font-weight: 600; margin: 2px 0 6px; overflow-wrap: anywhere; }
+.side .id { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.cleaned { font-family: var(--mono); font-size: 12.5px; margin-top: 8px; overflow-wrap: anywhere; }
+.cleaned i { font-style: normal; opacity: .32; text-decoration: line-through; }
+
+.scores { display: flex; gap: 18px; align-items: baseline; margin: 14px 0; flex-wrap: wrap; }
+.score b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.score span { font-size: 12px; color: var(--muted); margin-left: 5px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+kbd {
+  font: 600 10.5px var(--mono); padding: 1px 5px; border-radius: 4px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+}
+.alts { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.alts div { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; font-size: 13px; }
+.alts button { padding: 1px 7px; font-size: 11px; background: var(--surface-2); color: var(--text); border-color: var(--line); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.pill { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+/* Rows are clickable: selecting one puts it in the review card above. */
+#table tbody tr, #table tr:not(:first-child) { cursor: pointer; }
+#table tr:not(:first-child):hover td { background: var(--surface-2); }
+#table tr.selected td {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+#table tr.selected:hover td { background: var(--accent-soft); }
+.muted { color: var(--muted); }
+
+/* The review card is focusable so it can take keystrokes; make that look
+   deliberate rather than like a stray browser outline. */
+#review:focus { outline: none; }
+#review:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Match two lists of names</h1>
+    <p>Umlauts, typos, abbreviations, legal forms, truncation.</p>
+    <div class="header-row">
+      <div class="privacy">Nothing leaves your computer — no upload, no account</div>
+      <button class="link" id="tutorial-open" hidden>How it works</button>
+    </div>
+  </header>
+
+  <section class="tutorial" id="tutorial">
+    <button class="close" id="tutorial-close" title="Hide" aria-label="Hide">&times;</button>
+    <h3>How it works</h3>
+    <ol>
+      <li><b>Load two lists.</b> Drop an Excel file or CSV on each side — or select the cells in Excel, copy, and paste them straight into the box.</li>
+      <li><b>Match.</b> Names are compared after umlauts, case, punctuation and spacing are folded away, so <code>Müller GmbH</code>, <code>MUELLER GMBH</code> and <code>Mueller  G.m.b.H.</code> are all the same name. An abbreviation matches what it stands for: <code>GmbH</code> finds <code>Gesellschaft mit beschränkter Haftung</code>.</li>
+      <li><b>Confirm the uncertain ones.</b> Names that are identical after folding are accepted for you. The rest come up one at a time — <kbd>Y</kbd> keeps, <kbd>N</kbd> discards, <kbd>1</kbd>–<kbd>9</kbd> picks a different candidate. <b>Click any row in the table to go back to it</b> and change your mind.</li>
+      <li><b>Export</b> to Excel or CSV when you are done.</li>
+    </ol>
+    <p class="note">Your lists never leave this computer. Turn off your internet — it keeps working.</p>
+  </section>
+
+  <h2>1 · The two lists</h2>
+  <div class="panels">
+    <section class="panel" data-list="A" id="panel-A">
+      <h3>List A</h3>
+      <p class="hint">The names you want to find a counterpart for.</p>
+      <div class="drop" data-drop="A">
+        <strong>Drop an Excel file or CSV</strong> or click to choose<br>
+        <small>or paste straight from Excel below</small>
+      </div>
+      <textarea data-paste="A" placeholder="Paste cells copied from Excel&#10;Müller Handels GmbH&#9;A001&#10;Schmidt Industrieanlagen AG&#9;A002" spellcheck="false"></textarea>
+      <div class="cols" data-cols="A" hidden>
+        <label data-sheet-wrap hidden>Sheet <select data-sheet></select></label>
+        <label>Name <select data-col="name"></select></label>
+        <label>ID <select data-col="id"></select></label>
+        <label><input type="checkbox" data-header checked> first row is a header</label>
+      </div>
+      <div class="loaded" data-loaded="A" hidden></div>
+    </section>
+
+    <section class="panel" data-list="B" id="panel-B">
+      <h3>List B</h3>
+      <p class="hint">The list to search in.</p>
+      <div class="drop" data-drop="B">
+        <strong>Drop an Excel file or CSV</strong> or click to choose<br>
+        <small>or paste straight from Excel below</small>
+      </div>
+      <textarea data-paste="B" placeholder="Paste cells copied from Excel&#10;Mueller Handels GmbH&#9;B001&#10;Schmidt Industrieanlagen&#9;B002" spellcheck="false"></textarea>
+      <div class="cols" data-cols="B" hidden>
+        <label data-sheet-wrap hidden>Sheet <select data-sheet></select></label>
+        <label>Name <select data-col="name"></select></label>
+        <label>ID <select data-col="id"></select></label>
+        <label><input type="checkbox" data-header checked> first row is a header</label>
+      </div>
+      <div class="loaded" data-loaded="B" hidden></div>
+    </section>
+  </div>
+
+  <h2>2 · How strict</h2>
+  <div class="options">
+    <label class="opt">
+      <span>Minimum match</span>
+      <input type="number" id="opt-min" min="0" max="100" step="1" value="80">
+      <small>percent</small>
+    </label>
+    <label class="opt">
+      <span>Max different characters</span>
+      <input type="number" id="opt-maxdist" min="0" step="1" value="35">
+      <small>35 fits a written-out legal form</small>
+    </label>
+    <label class="opt">
+      <span>Candidates per name</span>
+      <input type="number" id="opt-top" min="1" max="20" step="1" value="5">
+      <small>offered during review</small>
+    </label>
+    <label class="opt">
+      <span>&nbsp;</span>
+      <label><input type="checkbox" id="opt-one"> each B row only once</label>
+      <small>for reconciliation</small>
+    </label>
+    <button id="run" disabled>Match</button>
+    <button class="ghost" id="reset">Reset</button>
+  </div>
+
+  <div id="results" hidden>
+    <h2>3 · Result</h2>
+    <div class="tiles" id="tiles"></div>
+
+    <div id="review-wrap" hidden>
+      <h2>4 · Confirm the uncertain ones</h2>
+      <div class="card" id="review" tabindex="0"></div>
+    </div>
+
+    <h2>Everything</h2>
+    <div class="scroll"><table id="table"></table></div>
+    <p style="margin-top:14px">
+      <button id="export-xlsx">Download Excel</button>
+      <button class="ghost" id="export">Download CSV</button>
+      <span class="muted" style="margin-left:8px" id="export-note"></span>
+    </p>
+  </div>
+
+</div>
+<input type="file" id="file-input" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden>
+<script type="module">
+
+// ---- src/csv.js ----
+// Minimal RFC4180-ish CSV, enough for Excel exports: quoted fields, doubled
+// quotes inside them, CRLF or LF, and a leading BOM that Excel likes to add.
+
+function parseCsv(text, delimiter = ",") {
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+
+    if (quoted) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else quoted = false;
+      } else field += ch;
+      continue;
+    }
+
+    if (ch === '"') quoted = true;
+    else if (ch === delimiter) { row.push(field); field = ""; }
+    else if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (ch !== "\r") field += ch;
+  }
+  if (field !== "" || row.length > 0) { row.push(field); rows.push(row); }
+
+  return rows.filter((r) => r.length > 1 || r[0] !== "");
+}
+
+/**
+ * Guess the delimiter from the first line. A tab wins outright — that is what a
+ * range copied out of Excel arrives as. Otherwise ";" vs "," , since German
+ * locales export semicolons.
+ */
+function sniffDelimiter(text) {
+  const head = text.split(/\r?\n/)[0] ?? "";
+  if (head.includes("\t")) return "\t";
+  return head.split(";").length > head.split(",").length ? ";" : ",";
+}
+
+function toCsv(rows, delimiter = ",") {
+  const esc = (v) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /["\n\r]|^\s|\s$/.test(s) || s.includes(delimiter)
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+  return rows.map((r) => r.map(esc).join(delimiter)).join("\r\n") + "\r\n";
+}
+
+
+// ---- src/zip.js ----
+// Just enough ZIP to read and write .xlsx, with no dependencies.
+//
+// Deflate comes from the platform — CompressionStream / DecompressionStream are
+// in every current browser and in Node 18+ — so there is no vendored library
+// here. That matters beyond file size: a tool whose selling point is "nothing
+// leaves your computer" is easier to believe when there is no third-party code
+// in it at all.
+
+const LOCAL_SIG = 0x04034b50;
+const CENTRAL_SIG = 0x02014b50;
+const EOCD_SIG = 0x06054b50;
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+async function through(bytes, stream) {
+  const piped = new Blob([bytes]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(piped).arrayBuffer());
+}
+
+const inflateRaw = (bytes) => through(bytes, new DecompressionStream("deflate-raw"));
+const deflateRaw = (bytes) => through(bytes, new CompressionStream("deflate-raw"));
+
+// ------------------------------------------------------------------ reading
+
+/**
+ * @param {ArrayBuffer|Uint8Array} input
+ * @returns {Promise<Map<string, Uint8Array>>} entry name -> bytes
+ */
+async function unzip(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+  // The end-of-central-directory record sits at the end, after a comment of
+  // unknown length, so it has to be found by scanning backwards.
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= 0 && i >= bytes.length - 22 - 0xffff; i--) {
+    if (view.getUint32(i, true) === EOCD_SIG) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("not a zip file (no end-of-central-directory record)");
+
+  const count = view.getUint16(eocd + 10, true);
+  let p = view.getUint32(eocd + 16, true);
+
+  const out = new Map();
+  for (let n = 0; n < count; n++) {
+    if (view.getUint32(p, true) !== CENTRAL_SIG) throw new Error("corrupt central directory");
+    const method = view.getUint16(p + 10, true);
+    const compSize = view.getUint32(p + 20, true);
+    const nameLen = view.getUint16(p + 28, true);
+    const extraLen = view.getUint16(p + 30, true);
+    const commentLen = view.getUint16(p + 32, true);
+    const localAt = view.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+
+    if (view.getUint32(localAt, true) !== LOCAL_SIG) throw new Error(`corrupt entry: ${name}`);
+    const lNameLen = view.getUint16(localAt + 26, true);
+    const lExtraLen = view.getUint16(localAt + 28, true);
+    const start = localAt + 30 + lNameLen + lExtraLen;
+    const raw = bytes.subarray(start, start + compSize);
+
+    out.set(name, method === 0 ? raw : await inflateRaw(raw));
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------ writing
+
+/**
+ * @param {{name: string, data: Uint8Array}[]} files
+ * @returns {Promise<Uint8Array>}
+ */
+async function zip(files) {
+  const encoder = new TextEncoder();
+  const parts = [];
+  const central = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const crc = crc32(file.data);
+    const deflated = await deflateRaw(file.data);
+    // Deflate can inflate tiny payloads; store them instead.
+    const useDeflate = deflated.length < file.data.length;
+    const body = useDeflate ? deflated : file.data;
+    const method = useDeflate ? 8 : 0;
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, LOCAL_SIG, true);
+    lv.setUint16(4, 20, true);          // version needed
+    lv.setUint16(6, 0, true);           // flags
+    lv.setUint16(8, method, true);
+    lv.setUint16(10, 0, true);          // time
+    lv.setUint16(12, 0x21, true);       // date: 1980-01-01, so output is byte-stable
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, body.length, true);
+    lv.setUint32(22, file.data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+
+    parts.push(local, body);
+
+    const entry = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(entry.buffer);
+    cv.setUint32(0, CENTRAL_SIG, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, method, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0x21, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, body.length, true);
+    cv.setUint32(24, file.data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint32(42, offset, true);
+    entry.set(nameBytes, 46);
+    central.push(entry);
+
+    offset += local.length + body.length;
+  }
+
+  const centralSize = central.reduce((n, e) => n + e.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, EOCD_SIG, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+
+  const all = [...parts, ...central, eocd];
+  const total = all.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const p of all) { out.set(p, at); at += p.length; }
+  return out;
+}
+
+
+// ---- src/xlsx.js ----
+// Read and write .xlsx workbooks.
+//
+// Scope is deliberately narrow: a worksheet's cell values as text. No styles,
+// no formulas, no dates-as-serial-numbers — this tool matches names, and the
+// columns it reads hold names and IDs.
+//
+// Parsing is by regular expression rather than a DOM. Excel's own output is
+// regular enough for that, it works identically in Node and the browser, and it
+// keeps the dependency count at zero.
+
+
+
+const decodeXml = (s) =>
+  s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+   .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+   .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+   .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+   .replace(/&amp;/g, "&");
+
+const encodeXml = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    // Control characters are not legal in XML 1.0 and Excel rejects the file.
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+
+/** "BC12" -> 54 (zero-based column index) */
+function columnIndex(ref) {
+  const letters = /^([A-Z]+)/.exec(ref)?.[1] ?? "A";
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+
+/** 0 -> "A", 26 -> "AA" */
+function columnName(index) {
+  let n = index + 1;
+  let out = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
+}
+
+function parseSharedStrings(xml) {
+  const out = [];
+  const si = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = si.exec(xml))) {
+    let text = "";
+    const t = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+    let piece;
+    while ((piece = t.exec(m[1]))) text += decodeXml(piece[1]);
+    out.push(text);
+  }
+  return out;
+}
+
+function parseSheet(xml, shared) {
+  const grid = [];
+  const rowRe = /<row\b([^>]*)>([\s\S]*?)<\/row>/g;
+  let row;
+  while ((row = rowRe.exec(xml))) {
+    const rowNumber = Number(/\br="(\d+)"/.exec(row[1])?.[1] ?? grid.length + 1);
+    const cells = [];
+
+    const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cell;
+    while ((cell = cellRe.exec(row[2]))) {
+      const attrs = cell[1];
+      const inner = cell[2] ?? "";
+      const ref = /\br="([A-Z]+\d+)"/.exec(attrs)?.[1];
+      const type = /\bt="([^"]+)"/.exec(attrs)?.[1] ?? "n";
+      const at = ref ? columnIndex(ref) : cells.length;
+
+      let value = "";
+      if (type === "inlineStr") {
+        const t = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+        let piece;
+        while ((piece = t.exec(inner))) value += decodeXml(piece[1]);
+      } else {
+        const raw = /<v\b[^>]*>([\s\S]*?)<\/v>/.exec(inner)?.[1];
+        if (raw !== undefined) {
+          value = type === "s" ? (shared[Number(raw)] ?? "") : decodeXml(raw);
+        }
+      }
+
+      while (cells.length < at) cells.push("");
+      cells[at] = value;
+    }
+
+    while (grid.length < rowNumber - 1) grid.push([]);
+    grid[rowNumber - 1] = cells;
+  }
+  return grid;
+}
+
+/**
+ * @param {ArrayBuffer|Uint8Array} input
+ * @returns {Promise<{name: string, grid: string[][]}[]>} one entry per worksheet
+ */
+async function readXlsx(input) {
+  const files = await unzip(input);
+  const text = (name) => {
+    const bytes = files.get(name);
+    return bytes ? new TextDecoder().decode(bytes) : null;
+  };
+
+  const workbook = text("xl/workbook.xml");
+  if (!workbook) throw new Error("not an Excel workbook (xl/workbook.xml missing)");
+
+  // Sheet name -> part, resolved through the workbook relationships.
+  const rels = new Map();
+  const relsXml = text("xl/_rels/workbook.xml.rels") ?? "";
+  for (const m of relsXml.matchAll(/<Relationship\b([^>]*)\/>/g)) {
+    const id = /\bId="([^"]+)"/.exec(m[1])?.[1];
+    let target = /\bTarget="([^"]+)"/.exec(m[1])?.[1];
+    if (!id || !target) continue;
+    if (!target.startsWith("/")) target = `xl/${target.replace(/^\.\//, "")}`;
+    rels.set(id, target.replace(/^\//, ""));
+  }
+
+  const shared = parseSharedStrings(text("xl/sharedStrings.xml") ?? "");
+
+  const sheets = [];
+  for (const m of workbook.matchAll(/<sheet\b([^>]*)\/>/g)) {
+    const name = decodeXml(/\bname="([^"]*)"/.exec(m[1])?.[1] ?? `Sheet${sheets.length + 1}`);
+    const rid = /\br:id="([^"]+)"/.exec(m[1])?.[1];
+    const part = (rid && rels.get(rid)) || `xl/worksheets/sheet${sheets.length + 1}.xml`;
+    const xml = text(part);
+    if (xml) sheets.push({ name, grid: parseSheet(xml, shared) });
+  }
+
+  if (sheets.length === 0) throw new Error("the workbook has no readable worksheet");
+  return sheets;
+}
+
+// ------------------------------------------------------------------ writing
+
+/**
+ * Whether a value should be written as a number rather than text.
+ *
+ * Round-tripping through Number is the test, not a regexp: "007" and "1e5" both
+ * look numeric but do not survive as themselves, and vendor and cost-centre IDs
+ * with leading zeros are everywhere in German master data. Turning 007 into 7
+ * silently corrupts the column the user matched on.
+ */
+function isNumeric(value) {
+  if (typeof value === "number") return Number.isFinite(value);
+  const s = String(value).trim();
+  return s !== "" && String(Number(s)) === s;
+}
+
+/**
+ * One worksheet from a grid of values. Strings are written inline, so there is
+ * no shared-string table to keep consistent.
+ *
+ * @param {(string|number)[][]} rows
+ * @param {string} [sheetName]
+ * @returns {Promise<Uint8Array>}
+ */
+async function writeXlsx(rows, sheetName = "Matches") {
+  const body = rows
+    .map((cells, r) => {
+      const xml = cells
+        .map((value, c) => {
+          const ref = `${columnName(c)}${r + 1}`;
+          if (value === null || value === undefined || value === "") return "";
+          // Numbers stay numeric so Excel can sort and filter on them; the
+          // distance and the metric are the columns that matters for.
+          if (isNumeric(value)) {
+            return `<c r="${ref}"><v>${encodeXml(String(value).trim())}</v></c>`;
+          }
+          return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${encodeXml(value)}</t></is></c>`;
+        })
+        .join("");
+      return `<row r="${r + 1}">${xml}</row>`;
+    })
+    .join("");
+
+  const encoder = new TextEncoder();
+  const part = (name, xml) => ({ name, data: encoder.encode(xml) });
+
+  return zip([
+    part("[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+      `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+      `<Default Extension="xml" ContentType="application/xml"/>` +
+      `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+      `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+      `</Types>`),
+    part("_rels/.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>` +
+      `</Relationships>`),
+    part("xl/workbook.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ` +
+      `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+      `<sheets><sheet name="${encodeXml(sheetName).slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets>` +
+      `</workbook>`),
+    part("xl/_rels/workbook.xml.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>` +
+      `</Relationships>`),
+    part("xl/worksheets/sheet1.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+      `<sheetData>${body}</sheetData></worksheet>`),
+  ]);
+}
+
+
+// ---- src/normalize.js ----
+// Port of CleanName_cleaned from the VBA original.
+//
+// Order matters. German umlauts must expand to two letters (ä -> ae) BEFORE
+// generic accent folding, otherwise NFD decomposition would strip the diaeresis
+// and leave a bare "a". Everything outside [a-z0-9] is then dropped, which is
+// what makes the metric blind to spacing, punctuation and legal-form commas.
+
+const UMLAUTS = [
+  [/ä/g, "ae"],
+  [/ö/g, "oe"],
+  [/ü/g, "ue"],
+  [/ß/g, "ss"],
+];
+
+/**
+ * Fold a raw name down to the comparison alphabet [a-z0-9].
+ * @param {string} s
+ * @returns {string}
+ */
+function cleanName(s) {
+  // NFC first: an "ä" typed as "a" + combining diaeresis would otherwise slip
+  // past the umlaut rules and lose its "e".
+  let x = String(s ?? "").toLowerCase().normalize("NFC");
+
+  for (const [re, rep] of UMLAUTS) x = x.replace(re, rep);
+
+  // Remaining accents fold to their base letter: é -> e, ç -> c, ñ -> n.
+  x = x.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  return x.replace(/[^a-z0-9]/g, "");
+}
+
+// Comparison alphabet: a-z then 0-9. Used for the character-count prefilter.
+const ALPHABET_SIZE = 36;
+
+/**
+ * Character histogram over the cleaned alphabet.
+ * @param {string} cleaned output of cleanName
+ * @returns {Int32Array} length 36
+ */
+function charCounts(cleaned) {
+  const counts = new Int32Array(ALPHABET_SIZE);
+  for (let i = 0; i < cleaned.length; i++) {
+    const c = cleaned.charCodeAt(i);
+    if (c >= 97) counts[c - 97] += 1;        // a-z -> 0..25
+    else counts[26 + (c - 48)] += 1;         // 0-9 -> 26..35
+  }
+  return counts;
+}
+
+/**
+ * Characters of the shorter string with no counterpart in the longer one.
+ *
+ * This is a lower bound on `lev - |len1 - len2|`, the numerator of the metric:
+ * writing u for this value and v for the reverse direction, v - u is exactly
+ * the length difference, and lev >= max(u, v) = u + |Δlen|.
+ *
+ * Cheap to compute and exact, so it prunes candidate pairs without ever
+ * changing a result.
+ */
+function unmatchedChars(countsShort, countsLong) {
+  let u = 0;
+  for (let c = 0; c < ALPHABET_SIZE; c++) {
+    const diff = countsShort[c] - countsLong[c];
+    if (diff > 0) u += diff;
+  }
+  return u;
+}
+
+
+// ---- src/levenshtein.js ----
+// Levenshtein distance: a reference implementation and a bounded one.
+//
+// The VBA original built the full (len1+1) x (len2+1) matrix and called
+// Application.WorksheetFunction.Min once per cell. The reference version here
+// is the same algorithm without the COM round-trip; the bounded version is what
+// the matcher actually runs.
+
+/**
+ * Full Levenshtein distance. Two rolling rows instead of the whole matrix.
+ * Kept as the ground truth the bounded version is tested against.
+ */
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  let prev = new Int32Array(n + 1);
+  let cur = new Int32Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i;
+    const ca = a.charCodeAt(i - 1);
+    for (let j = 1; j <= n; j++) {
+      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+      const del = prev[j] + 1;
+      const ins = cur[j - 1] + 1;
+      const sub = prev[j - 1] + cost;
+      cur[j] = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
+    }
+    const swap = prev;
+    prev = cur;
+    cur = swap;
+  }
+  return prev[n];
+}
+
+/**
+ * Levenshtein distance, but only accurate up to `k`.
+ *
+ * Returns the true distance when it is <= k, and k+1 otherwise. Two shortcuts
+ * make this much cheaper than the full matrix:
+ *
+ *  1. Only the diagonal band |i - j| <= k can hold a value <= k, so cells
+ *     outside it are never computed.
+ *  2. If every cell in a row already exceeds k, no later row can come back
+ *     under it, so we stop.
+ *
+ * Exact for the only question the matcher asks: "is this pair good enough, and
+ * if so, by exactly how much?"
+ */
+function levenshteinUpTo(a, b, k) {
+  const m = a.length;
+  const n = b.length;
+  if (k < 0) return 1;
+  if (Math.abs(m - n) > k) return k + 1;
+  if (m === 0) return n <= k ? n : k + 1;
+  if (n === 0) return m <= k ? m : k + 1;
+
+  const INF = k + 1;
+  let prev = new Int32Array(n + 1);
+  let cur = new Int32Array(n + 1);
+
+  prev.fill(INF);
+  for (let j = 0; j <= n && j <= k; j++) prev[j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    const lo = Math.max(1, i - k);
+    const hi = Math.min(n, i + k);
+    cur.fill(INF);
+    cur[0] = i <= k ? i : INF;
+
+    let best = cur[0];
+    const ca = a.charCodeAt(i - 1);
+    for (let j = lo; j <= hi; j++) {
+      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+      const del = prev[j] + 1;
+      const ins = cur[j - 1] + 1;
+      const sub = prev[j - 1] + cost;
+      let v = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
+      if (v > INF) v = INF;          // clamp: neighbours outside the band are INF
+      cur[j] = v;
+      if (v < best) best = v;
+    }
+
+    if (best > k) return k + 1;       // whole row is already out of reach
+    const swap = prev;
+    prev = cur;
+    cur = swap;
+  }
+
+  return prev[n] > k ? k + 1 : prev[n];
+}
+
+
+// ---- src/metric.js ----
+// The matching metric, ported from ModifiedLevenshteinDistance_cleaned.
+//
+//     metric = 1 - (lev - |len1 - len2|) / min(len1, len2)
+//
+// Subtracting the length difference removes the edits forced on the pair purely
+// because one string is longer. What remains is the mismatch inside the part the
+// two strings share, measured against the shorter string.
+//
+// The consequence, and the reason this beats a plain 1 - lev/maxLen on business
+// data: extra trailing content costs nothing. "muellergmbh" vs "mueller" scores
+// 1.0, because every one of the 4 edits is accounted for by the length gap.
+//
+// Bounded to [0, 1]: lev >= |Δlen| always, and lev - |Δlen| <= minLen.
+
+/**
+ * @param {number} lev  Levenshtein distance between the two cleaned names
+ * @param {number} len1 length of the first cleaned name
+ * @param {number} len2 length of the second cleaned name
+ */
+function metric(lev, len1, len2) {
+  const minLen = Math.min(len1, len2);
+  // Divergence from the VBA: an empty cleaned name scored 1.0 there, i.e. a
+  // perfect match against everything, which floated blank rows to the top of
+  // every result group. An empty name matches nothing.
+  if (minLen === 0) return 0;
+  return 1 - (lev - Math.abs(len1 - len2)) / minLen;
+}
+
+/**
+ * Largest Levenshtein distance that can still reach `minMetric` at these lengths.
+ *
+ * Solving metric >= t for lev gives lev <= |Δlen| + (1 - t) * minLen, so the
+ * bounded distance function can be told exactly when to give up — per pair,
+ * before any matrix work.
+ */
+function maxDistanceFor(len1, len2, minMetric) {
+  const minLen = Math.min(len1, len2);
+  const delta = Math.abs(len1 - len2);
+  return Math.floor(delta + (1 - minMetric) * minLen + 1e-9);
+}
+
+/**
+ * Ranking comparator, ported from the two-key sort in
+ * FilterPatternMatchingBroad_cleaned: metric descending, then the raw character
+ * distance ascending.
+ *
+ * The tie-break carries real weight here, because every containment match ties
+ * at 1.0 — the raw distance is what puts an exact match above a prefix match
+ * above a long trailing extension.
+ */
+function compareCandidates(x, y) {
+  if (y.metric !== x.metric) return y.metric - x.metric;
+  if (x.distance !== y.distance) return x.distance - y.distance;
+  return x.index - y.index;          // stable: input order of the second list
+}
+
+
+// ---- src/match.js ----
+// The n x m matcher.
+//
+// The VBA original materialised every pair into a worksheet and sorted the lot.
+// That is fine for a few hundred rows and impossible for tens of thousands, so
+// this keeps only each name's best candidates and prunes pairs that provably
+// cannot reach the threshold.
+//
+// Note on pruning: the usual "skip pairs whose lengths differ by more than k"
+// trick does NOT apply to this metric. Tolerating length differences is the
+// whole point of it — a 7-character name can legitimately score 1.0 against a
+// 60-character one. The character-count bound in unmatchedChars is used instead,
+// and it prunes on genuine mismatch rather than on length.
+
+
+
+
+
+/**
+ * Default absolute cap on raw character distance.
+ *
+ * Set to admit a fully written-out legal form: "Müller GmbH" against
+ * "Müller Gesellschaft mit beschränkter Haftung" is 31 characters apart and has
+ * to survive. Anything much tighter throws away the abbreviation handling that
+ * makes the metric worth having.
+ */
+const DEFAULT_MAX_DISTANCE = 35;
+
+/**
+ * Default cap relative to the shorter name: at most this many edits per
+ * character of it.
+ *
+ * An absolute cap alone cannot serve both ends. Wide enough for a written-out
+ * legal form, it is also wide enough for "AG" to reach almost any company name,
+ * because a two-letter string is a subsequence of nearly everything. Scaling by
+ * the shorter name separates the two cases cleanly — measured on real pairs:
+ *
+ *   Müller GmbH / Müller Gesellschaft mit beschränkter Haftung   2.8x
+ *   Weiß & Söhne KG / Weiss & Soehne Kommanditgesellschaft       1.5x
+ *   Hoffmann Logistik GmbH & Co. KG / Hofmann Logistik           0.6x
+ *   -------------------------------------------------------------- 3.0
+ *   AG / Müller Handels GmbH                                     8.0x
+ *   SE / Thyssen Fördertechnik                                   9.5x
+ *   KG / Grünewald Pharma Gesellschaft                          13.5x
+ *
+ * Every legitimate expansion sits below 3, every short-name false positive well
+ * above it. A two-letter name gets a budget of 6 characters; a twenty-letter one
+ * gets 60, bounded by DEFAULT_MAX_DISTANCE.
+ */
+const DEFAULT_MAX_DISTANCE_RATIO = 3;
+
+/**
+ * @typedef {{name: string, id: string|number, index: number}} Row
+ */
+
+/** Attach the cleaned form and character histogram to each row, once. */
+function prepare(rows) {
+  return rows.map((r, i) => {
+    const cleaned = cleanName(r.name);
+    return {
+      ...r,
+      index: r.index ?? i,
+      cleaned,
+      counts: charCounts(cleaned),
+    };
+  });
+}
+
+/**
+ * Best `topN` candidates from `listB` for every row of `listA`.
+ *
+ * @param {Row[]} listA
+ * @param {Row[]} listB
+ * @param {{topN?: number, minMetric?: number}} [opts]
+ */
+function matchAll(listA, listB, opts = {}) {
+  const topN = opts.topN ?? 1;
+  const minMetric = opts.minMetric ?? 0;
+  // Two caps on raw edits, whichever is tighter for the pair at hand. The metric
+  // alone is permissive for short names — it reaches 1.0 whenever the shorter
+  // name is a subsequence of the longer — so the "# Different Chars" column
+  // becomes a filter rather than just a hint.
+  const maxDistance = opts.maxDistance ?? DEFAULT_MAX_DISTANCE;
+  const maxDistanceRatio = opts.maxDistanceRatio ?? DEFAULT_MAX_DISTANCE_RATIO;
+
+  const A = prepare(listA);
+  const B = prepare(listB);
+
+  // Identical cleaned names always produce identical results, so compute each
+  // distinct one once. This is what the dictH bookkeeping in the VBA was for,
+  // except here it falls out of the structure instead of being maintained by hand.
+  const cache = new Map();
+
+  return A.map((a) => {
+    let candidates = cache.get(a.cleaned);
+    if (!candidates) {
+      candidates = candidatesFor(a, B, topN, minMetric, maxDistance, maxDistanceRatio);
+      cache.set(a.cleaned, candidates);
+    }
+    return { a, candidates };
+  });
+}
+
+function candidatesFor(a, B, topN, minMetric, maxDistance, maxDistanceRatio) {
+  const out = [];
+  const lenA = a.cleaned.length;
+
+  for (const b of B) {
+    const lenB = b.cleaned.length;
+    if (lenA === 0 || lenB === 0) continue;   // an empty name matches nothing
+
+    // Cheap exact bound first: characters of the shorter name that the longer
+    // one simply does not contain. Each one costs at least one edit beyond the
+    // length difference, so if there are too many, the pair cannot qualify.
+    const budget = (1 - minMetric) * Math.min(lenA, lenB);
+    const [shortC, longC] =
+      lenA <= lenB ? [a.counts, b.counts] : [b.counts, a.counts];
+    if (unmatchedChars(shortC, longC) > budget) continue;
+
+    const k = Math.min(
+      maxDistanceFor(lenA, lenB, minMetric),
+      maxDistance,
+      Math.floor(maxDistanceRatio * Math.min(lenA, lenB)),
+    );
+    const distance = levenshteinUpTo(a.cleaned, b.cleaned, k);
+    if (distance > k) continue;               // below threshold
+
+    const m = metric(distance, lenA, lenB);
+    if (m < minMetric) continue;
+
+    out.push({
+      b,
+      index: b.index,
+      distance,
+      metric: m,
+      exact: distance === 0 && m === 1,
+    });
+  }
+
+  out.sort(compareCandidates);
+  return out.slice(0, topN);
+}
+
+/**
+ * Global one-to-one assignment.
+ *
+ * Taking each row's own best candidate independently lets several entries claim
+ * the same counterpart, which is wrong for reconciliation work — one invoice is
+ * one booking, one vendor is one vendor. Here every candidate pair competes
+ * globally: the strongest pairs claim first, and each side is used once.
+ *
+ * @param {ReturnType<typeof matchAll>} matched
+ */
+function assignOneToOne(matched) {
+  const pairs = [];
+  for (const { a, candidates } of matched) {
+    for (const c of candidates) pairs.push({ a, ...c });
+  }
+  pairs.sort(compareCandidates);
+
+  const takenA = new Set();
+  const takenB = new Set();
+  const assigned = [];
+  for (const p of pairs) {
+    if (takenA.has(p.a.index) || takenB.has(p.b.index)) continue;
+    takenA.add(p.a.index);
+    takenB.add(p.b.index);
+    assigned.push(p);
+  }
+
+  const unmatched = matched
+    .filter(({ a }) => !takenA.has(a.index))
+    .map(({ a }) => a);
+
+  return { assigned, unmatched };
+}
+
+// ---------------------------------------------------------------- output
+//
+// The export carries every column of both source rows, not just the two names
+// that were matched on. Someone reconciling a real vendor master has ten other
+// columns in that file and needs them beside the match — otherwise the result
+// has to be VLOOKUPed back against the original, which is the problem this tool
+// exists to remove.
+
+const SCORE_COLUMNS = ["Cleaned A", "Cleaned B", "# Different Chars", "Metric in %", "Status"];
+
+/** Heading row. Prefixed, so two columns both called "Name" stay apart. */
+function exportColumns(headersA, headersB) {
+  return [
+    ...headersA.map((h) => `A · ${h}`),
+    ...headersB.map((h) => `B · ${h}`),
+    ...SCORE_COLUMNS,
+  ];
+}
+
+/**
+ * One output row.
+ * @param a         the prepared list A row
+ * @param candidate the chosen candidate, or null for no match
+ * @param widthB    how many columns list B has, so blanks line up
+ * @param status    free text for the last column
+ */
+function exportRow(a, candidate, widthB, status) {
+  return [
+    ...a.source,
+    ...(candidate ? candidate.b.source : Array(widthB).fill("")),
+    a.cleaned,
+    candidate ? candidate.b.cleaned : "",
+    candidate ? candidate.distance : "",
+    candidate ? candidate.metric : "",
+    status,
+  ];
+}
+
+
+// ---- src/align.js ----
+// Character alignment between two cleaned names, for showing *why* a pair
+// matched. Reconstructs the edit script from a full Levenshtein matrix — the
+// strings here are short, and this runs only for the handful of pairs on screen.
+
+const MAX_LEN = 300;
+
+/**
+ * @returns {{a: {ch: string, match: boolean}[], b: {ch: string, match: boolean}[]}}
+ *   one entry per character of each string, flagged with whether it was aligned
+ *   against an identical character in the other.
+ */
+function align(a, b) {
+  if (a.length > MAX_LEN || b.length > MAX_LEN) {
+    return {
+      a: [...a].map((ch) => ({ ch, match: false })),
+      b: [...b].map((ch) => ({ ch, match: false })),
+    };
+  }
+
+  const m = a.length;
+  const n = b.length;
+  const d = [];
+  for (let i = 0; i <= m; i++) {
+    d.push(new Int32Array(n + 1));
+    d[i][0] = i;
+  }
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+
+  const outA = [];
+  const outB = [];
+  let i = m;
+  let j = n;
+  while (i > 0 || j > 0) {
+    const same = i > 0 && j > 0 && a[i - 1] === b[j - 1];
+    if (i > 0 && j > 0 && d[i][j] === d[i - 1][j - 1] + (same ? 0 : 1)) {
+      outA.unshift({ ch: a[i - 1], match: same });
+      outB.unshift({ ch: b[j - 1], match: same });
+      i--; j--;
+    } else if (i > 0 && d[i][j] === d[i - 1][j] + 1) {
+      outA.unshift({ ch: a[i - 1], match: false });   // only in the first name
+      i--;
+    } else {
+      outB.unshift({ ch: b[j - 1], match: false });   // only in the second
+      j--;
+    }
+  }
+  return { a: outA, b: outB };
+}
+
+
+// ---- ui/app.js ----
+// Browser front end. Imports the same modules the CLI uses — nothing is sent
+// anywhere, the matching runs in this tab.
+
+
+
+
+
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+const lists = {
+  A: { grid: null, sheets: null, sheetIndex: 0, nameCol: 0, idCol: 1, header: true },
+  B: { grid: null, sheets: null, sheetIndex: 0, nameCol: 0, idCol: 1, header: true },
+};
+
+let matched = null;         // [{ a, candidates }]
+let decisions = new Map();  // a.index -> { choice: number|null, status }
+let current = 0;            // index into `matched`: the row in the review card
+
+
+// ---------------------------------------------------------------- input
+
+function ingest(key, text) {
+  lists[key].sheets = null;
+  $(`[data-sheet-wrap]`, $(`[data-cols="${key}"]`)).hidden = true;
+  setGrid(key, parseCsv(text, sniffDelimiter(text)));
+}
+
+/** Excel workbook: keep every sheet, offer a picker when there is more than one. */
+async function ingestWorkbook(key, buffer) {
+  const sheets = await readXlsx(buffer);
+  lists[key].sheets = sheets;
+  lists[key].sheetIndex = 0;
+
+  const wrap = $(`[data-sheet-wrap]`, $(`[data-cols="${key}"]`));
+  const select = $("[data-sheet]", wrap);
+  select.innerHTML = "";
+  sheets.forEach((sheet, i) => select.append(new Option(sheet.name, String(i))));
+  select.value = "0";
+  wrap.hidden = sheets.length < 2;
+
+  setGrid(key, sheets[0].grid);
+}
+
+async function ingestFile(key, file) {
+  try {
+    if (/\.xls[xm]$/i.test(file.name)) await ingestWorkbook(key, await file.arrayBuffer());
+    else ingest(key, await file.text());
+  } catch (err) {
+    alert(`Could not read ${file.name}: ${err.message}`);
+  }
+}
+
+function setGrid(key, rawGrid) {
+  const grid = rawGrid.filter((r) => r.some((c) => String(c).trim() !== ""));
+  if (grid.length === 0) return;
+
+  lists[key].grid = grid;
+  const cols = $(`[data-cols="${key}"]`);
+  cols.hidden = false;
+
+  const width = Math.max(...grid.map((r) => r.length));
+  // Only the column pickers — the sheet picker lives in the same row and must
+  // keep its own options.
+  for (const select of $$("select[data-col]", cols)) {
+    const which = select.dataset.col;
+    select.innerHTML = "";
+    if (which === "id") select.append(new Option("— none —", "-1"));
+    for (let c = 0; c < width; c++) {
+      const label = lists[key].header && grid[0][c] ? grid[0][c] : `Column ${c + 1}`;
+      select.append(new Option(label, String(c)));
+    }
+    select.value = String(which === "name" ? 0 : Math.min(1, width - 1));
+  }
+  syncColumns(key);
+}
+
+function syncColumns(key) {
+  const cols = $(`[data-cols="${key}"]`);
+  const sheetSelect = $("[data-sheet]", cols);
+  if (lists[key].sheets && sheetSelect.value !== "") {
+    const wanted = Number(sheetSelect.value);
+    if (wanted !== lists[key].sheetIndex) {
+      lists[key].sheetIndex = wanted;
+      setGrid(key, lists[key].sheets[wanted].grid);
+      return;
+    }
+  }
+  lists[key].header = $("[data-header]", cols).checked;
+  lists[key].nameCol = Number($('[data-col="name"]', cols).value);
+  lists[key].idCol = Number($('[data-col="id"]', cols).value);
+
+  const rows = rowsOf(key);
+  const note = $(`[data-loaded="${key}"]`);
+  note.hidden = false;
+  note.textContent = `${rows.length} name${rows.length === 1 ? "" : "s"} loaded`;
+  $("#run").disabled = !(rowsOf("A").length && rowsOf("B").length);
+}
+
+function rowsOf(key) {
+  const cfg = lists[key];
+  if (!cfg.grid) return [];
+  const body = cfg.header ? cfg.grid.slice(1) : cfg.grid;
+  const width = headersOf(key).length;
+  return body
+    .map((r, i) => ({
+      name: String(r[cfg.nameCol] ?? "").trim(),
+      id: cfg.idCol >= 0 ? String(r[cfg.idCol] ?? "").trim() : "",
+      index: i,
+      // The whole source row travels with the name, so the export can hand back
+      // the user's own columns rather than just the two we matched on.
+      source: Array.from({ length: width }, (_, c) => String(r[c] ?? "")),
+    }))
+    .filter((r) => r.name !== "");
+}
+
+/** Column headings of a loaded list, falling back to "Column n". */
+function headersOf(key) {
+  const cfg = lists[key];
+  if (!cfg.grid) return [];
+  const width = Math.max(...cfg.grid.map((r) => r.length));
+  return Array.from({ length: width }, (_, c) =>
+    (cfg.header && String(cfg.grid[0][c] ?? "").trim()) || `Column ${c + 1}`);
+}
+
+// ---------------------------------------------------------------- matching
+
+function run() {
+  const minMetric = Number($("#opt-min").value) / 100;
+  const maxDistance = Number($("#opt-maxdist").value);
+  const topN = Number($("#opt-top").value);
+
+  matched = matchAll(rowsOf("A"), rowsOf("B"), {
+    topN,
+    minMetric,
+    maxDistance: Number.isFinite(maxDistance) ? maxDistance : Infinity,
+  });
+
+  if ($("#opt-one").checked) {
+    // Keep the shape of `matched`, but let only the winning pair survive.
+    const { assigned } = assignOneToOne(matched);
+    const keep = new Map(assigned.map((p) => [p.a.index, p.b.index]));
+    matched = matched.map((m) => ({
+      a: m.a,
+      candidates: keep.has(m.a.index)
+        ? m.candidates.filter((c) => c.b.index === keep.get(m.a.index))
+        : [],
+    }));
+  }
+
+  decisions = new Map();
+  for (const m of matched) {
+    const top = m.candidates[0];
+    decisions.set(m.a.index, {
+      choice: top ? 0 : null,
+      // An exact match after cleaning needs no human; everything else does.
+      status: !top ? "none" : top.exact ? "accepted" : "pending",
+    });
+  }
+
+  current = nextPending(0) ?? 0;
+
+  $("#results").hidden = false;
+  renderAll();
+  if (matched.length) $("#review").focus();
+}
+
+// ---------------------------------------------------------------- rendering
+
+function renderAll() {
+  renderTiles();
+  renderReview();
+  renderTable();
+}
+
+function counts() {
+  let accepted = 0, pending = 0, rejected = 0, none = 0;
+  for (const d of decisions.values()) {
+    if (d.status === "accepted") accepted++;
+    else if (d.status === "pending") pending++;
+    else if (d.status === "rejected") rejected++;
+    else none++;
+  }
+  return { accepted, pending, rejected, none };
+}
+
+function renderTiles() {
+  const c = counts();
+  $("#tiles").innerHTML = [
+    tile("ok", c.accepted, "confirmed"),
+    tile("warn", c.pending, "to review"),
+    tile("bad", c.none + c.rejected, "no match"),
+    tile("", matched.length, "names in list A"),
+  ].join("");
+}
+
+const tile = (cls, n, label) =>
+  `<div class="tile ${cls}"><b>${n}</b><span>${label}</span></div>`;
+
+function renderCleaned(parts) {
+  return parts
+    .map((p) => (p.match ? esc(p.ch) : `<i>${esc(p.ch)}</i>`))
+    .join("");
+}
+
+function statusOf(index) {
+  return decisions.get(matched[index].a.index).status;
+}
+
+/** Next row still needing a decision, wrapping; null when there are none left. */
+function nextPending(from) {
+  for (let n = 0; n < matched.length; n++) {
+    const i = (from + n) % matched.length;
+    if (statusOf(i) === "pending") return i;
+  }
+  return null;
+}
+
+function select(index) {
+  current = Math.max(0, Math.min(index, matched.length - 1));
+  renderAll();
+}
+
+function renderReview() {
+  const wrap = $("#review-wrap");
+  const box = $("#review");
+  if (!matched.length) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+
+  const m = matched[current];
+  const d = decisions.get(m.a.index);
+  const left = counts().pending;
+
+  const heading = `
+    <div class="progress">
+      <span>${left ? `${left} still to review` : "everything decided"} &middot; row ${current + 1} of ${matched.length}</span>
+      <span><kbd>Y</kbd> keep &middot; <kbd>N</kbd> discard &middot; <kbd>1</kbd>–<kbd>9</kbd> pick another &middot; <kbd>←</kbd><kbd>→</kbd> move</span>
+    </div>`;
+
+  // A row with nothing to decide still gets shown, so clicking it in the table
+  // explains itself rather than doing nothing.
+  if (!m.candidates.length) {
+    box.innerHTML = `${heading}
+      <div class="pair">
+        <div class="side">
+          <div class="label">List A</div>
+          <div class="name">${esc(m.a.name)}</div>
+          <div class="id">${esc(m.a.id) || "&nbsp;"}</div>
+          <div class="cleaned">${esc(m.a.cleaned) || "<i>nothing left after cleaning</i>"}</div>
+        </div>
+        <div class="side b">
+          <div class="label">List B</div>
+          <div class="name muted">No candidate</div>
+          <div class="id">&nbsp;</div>
+        </div>
+      </div>
+      <p class="muted" style="margin:12px 0 0">
+        ${m.a.cleaned
+          ? "Nothing in list B is close enough under the current settings. Loosen “Minimum match” or the character limits and match again."
+          : "This name contains no letters or digits, so there is nothing to compare."}
+      </p>`;
+    return;
+  }
+
+  const cand = m.candidates[d.choice ?? 0];
+  const a = align(m.a.cleaned, cand.b.cleaned);
+  const decided =
+    d.status === "accepted" ? '<span class="pill ok">confirmed</span>'
+    : d.status === "rejected" ? '<span class="pill bad">discarded</span>'
+    : "";
+
+  box.innerHTML = `${heading}
+    <div class="pair">
+      <div class="side">
+        <div class="label">List A</div>
+        <div class="name">${esc(m.a.name)}</div>
+        <div class="id">${esc(m.a.id) || "&nbsp;"}</div>
+        <div class="cleaned">${renderCleaned(a.a)}</div>
+      </div>
+      <div class="side b">
+        <div class="label">List B</div>
+        <div class="name">${esc(cand.b.name)}</div>
+        <div class="id">${esc(cand.b.id) || "&nbsp;"}</div>
+        <div class="cleaned">${renderCleaned(a.b)}</div>
+      </div>
+    </div>
+    <div class="scores">
+      <div class="score"><b>${(cand.metric * 100).toFixed(1)}%</b><span>match</span></div>
+      <div class="score"><b>${cand.distance}</b><span>different characters</span></div>
+      ${decided}
+    </div>
+    <div class="actions">
+      <button class="accept" data-act="accept">Keep this match</button>
+      <button class="reject" data-act="reject">No match</button>
+      <button class="ghost" data-act="skip">Skip</button>
+    </div>
+    ${renderAlternatives(m, d)}
+  `;
+
+  for (const b of $$("[data-act]", box)) b.onclick = () => act(b.dataset.act);
+  for (const b of $$("[data-alt]", box)) {
+    b.onclick = () => { d.choice = Number(b.dataset.alt); renderAll(); };
+  }
+}
+
+function renderAlternatives(m, d) {
+  if (m.candidates.length < 2) return "";
+  const rows = m.candidates
+    .map((c, i) => {
+      const chosen = i === (d.choice ?? 0);
+      return `<div>
+        <kbd>${i + 1}</kbd>
+        <button data-alt="${i}"${chosen ? " disabled" : ""}>${chosen ? "shown" : "show"}</button>
+        <span>${esc(c.b.name)}</span>
+        <span class="muted">${(c.metric * 100).toFixed(1)}% &middot; ${c.distance} chars</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="alts"><div class="muted" style="font-size:12px;margin-bottom:4px">Other candidates</div>${rows}</div>`;
+}
+
+function act(kind) {
+  const d = decisions.get(matched[current].a.index);
+  // The chosen candidate is kept on a discard too, so coming back to the row
+  // shows what was rejected rather than an empty card.
+  if (kind === "accept") d.status = "accepted";
+  else if (kind === "reject") d.status = "rejected";
+
+  const next = nextPending(current + 1);
+  if (next !== null) current = next;
+  renderAll();
+}
+
+function move(step) {
+  if (!matched.length) return;
+  current = (current + step + matched.length) % matched.length;
+  renderAll();
+}
+
+
+function resultRows() {
+  return matched.map((m) => {
+    const d = decisions.get(m.a.index);
+    const c = d.choice !== null && d.status !== "rejected" ? m.candidates[d.choice] : null;
+    return {
+      a: m.a,
+      c,
+      status: d.status,
+    };
+  });
+}
+
+function renderTable() {
+  const rows = resultRows();
+  const head = `<tr>
+    <th>Name 1</th><th>ID 1</th><th>Name 2</th><th>ID 2</th>
+    <th>Chars</th><th>Match</th><th>Status</th></tr>`;
+  const body = rows
+    .map(({ a, c, status }, i) => {
+      const pill =
+        status === "accepted" ? '<span class="pill ok">confirmed</span>'
+        : status === "pending" ? '<span class="pill warn">to review</span>'
+        : '<span class="pill bad">no match</span>';
+      return `<tr data-row="${i}"${i === current ? ' class="selected"' : ""} title="Click to review this row">
+        <td>${esc(a.name)}</td>
+        <td class="muted">${esc(a.id)}</td>
+        <td>${c ? esc(c.b.name) : '<span class="muted">—</span>'}</td>
+        <td class="muted">${c ? esc(c.b.id) : ""}</td>
+        <td class="num">${c ? c.distance : ""}</td>
+        <td class="num">${c ? (c.metric * 100).toFixed(1) + "%" : ""}</td>
+        <td>${pill}</td>
+      </tr>`;
+    })
+    .join("");
+  const table = $("#table");
+  table.innerHTML = head + body;
+  for (const tr of $$("tr[data-row]", table)) {
+    tr.onclick = () => {
+      select(Number(tr.dataset.row));
+      $("#review").focus({ preventScroll: true });
+      $("#review").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    };
+  }
+  $("#export-note").textContent = `${rows.length} rows`;
+}
+
+/**
+ * Every column of the matched pair, not just the two names.
+ *
+ * Someone matching a real vendor master has ten other columns in that file and
+ * wants them back next to the match — otherwise the export has to be VLOOKUPed
+ * against the original, which is the problem this tool exists to remove.
+ *
+ * Layout: the whole list A row, the whole matched list B row, then the scores.
+ * Headings are prefixed so two columns both called "Name" stay distinguishable.
+ */
+function exportGrid() {
+  const widthB = headersOf("B").length;
+  return [
+    exportColumns(headersOf("A"), headersOf("B")),
+    ...resultRows().map(({ a, c, status }) => exportRow(a, c, widthB, status)),
+  ];
+}
+
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement("a"), { href: url, download: filename });
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCsv() {
+  // Semicolons and a BOM so a double-click opens cleanly in a German Excel.
+  download(
+    new Blob(["\uFEFF" + toCsv(exportGrid(), ";")], { type: "text/csv;charset=utf-8" }),
+    "matches.csv",
+  );
+}
+
+async function exportXlsx() {
+  const bytes = await writeXlsx(exportGrid(), "Matches");
+  download(
+    new Blob([bytes], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    "matches.xlsx",
+  );
+}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------------------------------------------------------------- wiring
+
+let pendingDrop = null;
+const fileInput = $("#file-input");
+
+for (const key of ["A", "B"]) {
+  const zone = $(`[data-drop="${key}"]`);
+  zone.onclick = () => { pendingDrop = key; fileInput.click(); };
+  zone.ondragover = (e) => { e.preventDefault(); zone.classList.add("over"); };
+  zone.ondragleave = () => zone.classList.remove("over");
+  zone.ondrop = async (e) => {
+    e.preventDefault();
+    zone.classList.remove("over");
+    const file = e.dataTransfer.files[0];
+    if (file) await ingestFile(key, file);
+  };
+
+  const area = $(`[data-paste="${key}"]`);
+  area.oninput = () => { if (area.value.trim()) ingest(key, area.value); };
+
+  // Changing the name/ID column or the header flag only re-reads the same grid.
+  $(`[data-cols="${key}"]`).onchange = () => syncColumns(key);
+}
+
+fileInput.onchange = async () => {
+  const file = fileInput.files[0];
+  if (file && pendingDrop) await ingestFile(pendingDrop, file);
+  fileInput.value = "";
+};
+
+/**
+ * Back to a blank page: both lists, both previews, the result and every
+ * decision. Deliberately not a page reload — a reload would also bring the
+ * tutorial back for someone who has dismissed it.
+ */
+function reset() {
+  for (const key of ["A", "B"]) {
+    Object.assign(lists[key], {
+      grid: null, sheets: null, sheetIndex: 0, nameCol: 0, idCol: 1, header: true,
+    });
+    $(`[data-paste="${key}"]`).value = "";
+    $(`[data-cols="${key}"]`).hidden = true;
+    $(`[data-sheet-wrap]`, $(`[data-cols="${key}"]`)).hidden = true;
+    $(`[data-header]`, $(`[data-cols="${key}"]`)).checked = true;
+    const note = $(`[data-loaded="${key}"]`);
+    note.hidden = true;
+    note.textContent = "";
+  }
+  matched = null;
+  decisions = new Map();
+  current = 0;
+  $("#results").hidden = true;
+  $("#review-wrap").hidden = true;
+  $("#table").innerHTML = "";
+  $("#run").disabled = true;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// The tutorial is shown until it is dismissed, then stays gone on this browser.
+// Storage can be unavailable (private windows, blocked site data), so every
+// access is guarded and the page simply shows the tutorial if it cannot tell.
+const TUTORIAL_KEY = "matchtool.tutorial.hidden";
+
+function showTutorial(visible) {
+  $("#tutorial").hidden = !visible;
+  $("#tutorial-open").hidden = visible;
+  try {
+    if (visible) localStorage.removeItem(TUTORIAL_KEY);
+    else localStorage.setItem(TUTORIAL_KEY, "1");
+  } catch { /* not worth telling the user about */ }
+}
+
+try {
+  if (localStorage.getItem(TUTORIAL_KEY) === "1") showTutorial(false);
+} catch { /* leave it visible */ }
+
+$("#tutorial-close").onclick = () => showTutorial(false);
+$("#tutorial-open").onclick = () => {
+  showTutorial(true);
+  $("#tutorial").scrollIntoView({ block: "nearest", behavior: "smooth" });
+};
+
+$("#reset").onclick = reset;
+$("#run").onclick = run;
+$("#export").onclick = exportCsv;
+$("#export-xlsx").onclick = exportXlsx;
+
+$("#review").onkeydown = (e) => {
+  if (!matched) return;
+  const k = e.key.toLowerCase();
+  if (!matched.length || !matched[current].candidates.length) {
+    if (k === "arrowright") { move(1); e.preventDefault(); }
+    else if (k === "arrowleft") { move(-1); e.preventDefault(); }
+    return;
+  }
+  if (k === "y" || k === "j" || k === "enter") { act("accept"); e.preventDefault(); }
+  else if (k === "n") { act("reject"); e.preventDefault(); }
+  else if (k === "arrowright") { move(1); e.preventDefault(); }
+  else if (k === "arrowleft") { move(-1); e.preventDefault(); }
+  else if (/^[1-9]$/.test(k)) {
+    const m = matched[current];
+    const i = Number(k) - 1;
+    if (m && m.candidates[i]) {
+      decisions.get(m.a.index).choice = i;
+      renderAll();
+      e.preventDefault();
+    }
+  }
+};
+
+</script>
+</body>
+</html>

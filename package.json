@@ -1,0 +1,9 @@
+{
+  "name": "matchtool",
+  "version": "0.1.0",
+  "description": "Fuzzy list matching on Levenshtein distance with a length-difference-tolerant metric.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/test.js"
+  }
+}

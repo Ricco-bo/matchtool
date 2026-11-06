@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>matchtool — match two lists of names</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Match two lists of names</h1>
+    <p>Umlauts, typos, abbreviations, legal forms, truncation.</p>
+    <div class="header-row">
+      <div class="privacy">Nothing leaves your computer — no upload, no account</div>
+      <button class="link" id="tutorial-open" hidden>How it works</button>
+    </div>
+  </header>
+
+  <section class="tutorial" id="tutorial">
+    <button class="close" id="tutorial-close" title="Hide" aria-label="Hide">&times;</button>
+    <h3>How it works</h3>
+    <ol>
+      <li><b>Load two lists.</b> Drop an Excel file or CSV on each side — or select the cells in Excel, copy, and paste them straight into the box.</li>
+      <li><b>Match.</b> Names are compared after umlauts, case, punctuation and spacing are folded away, so <code>Müller GmbH</code>, <code>MUELLER GMBH</code> and <code>Mueller  G.m.b.H.</code> are all the same name. An abbreviation matches what it stands for: <code>GmbH</code> finds <code>Gesellschaft mit beschränkter Haftung</code>.</li>
+      <li><b>Confirm the uncertain ones.</b> Names that are identical after folding are accepted for you. The rest come up one at a time — <kbd>Y</kbd> keeps, <kbd>N</kbd> discards, <kbd>1</kbd>–<kbd>9</kbd> picks a different candidate. <b>Click any row in the table to go back to it</b> and change your mind.</li>
+      <li><b>Export</b> to Excel or CSV when you are done.</li>
+    </ol>
+    <p class="note">Your lists never leave this computer. Turn off your internet — it keeps working.</p>
+  </section>
+
+  <h2>1 · The two lists</h2>
+  <div class="panels">
+    <section class="panel" data-list="A" id="panel-A">
+      <h3>List A</h3>
+      <p class="hint">The names you want to find a counterpart for.</p>
+      <div class="drop" data-drop="A">
+        <strong>Drop an Excel file or CSV</strong> or click to choose<br>
+        <small>or paste straight from Excel below</small>
+      </div>
+      <textarea data-paste="A" placeholder="Paste cells copied from Excel&#10;Müller Handels GmbH&#9;A001&#10;Schmidt Industrieanlagen AG&#9;A002" spellcheck="false"></textarea>
+      <div class="cols" data-cols="A" hidden>
+        <label data-sheet-wrap hidden>Sheet <select data-sheet></select></label>
+        <label>Name <select data-col="name"></select></label>
+        <label>ID <select data-col="id"></select></label>
+        <label><input type="checkbox" data-header checked> first row is a header</label>
+      </div>
+      <div class="loaded" data-loaded="A" hidden></div>
+    </section>
+
+    <section class="panel" data-list="B" id="panel-B">
+      <h3>List B</h3>
+      <p class="hint">The list to search in.</p>
+      <div class="drop" data-drop="B">
+        <strong>Drop an Excel file or CSV</strong> or click to choose<br>
+        <small>or paste straight from Excel below</small>
+      </div>
+      <textarea data-paste="B" placeholder="Paste cells copied from Excel&#10;Mueller Handels GmbH&#9;B001&#10;Schmidt Industrieanlagen&#9;B002" spellcheck="false"></textarea>
+      <div class="cols" data-cols="B" hidden>
+        <label data-sheet-wrap hidden>Sheet <select data-sheet></select></label>
+        <label>Name <select data-col="name"></select></label>
+        <label>ID <select data-col="id"></select></label>
+        <label><input type="checkbox" data-header checked> first row is a header</label>
+      </div>
+      <div class="loaded" data-loaded="B" hidden></div>
+    </section>
+  </div>
+
+  <h2>2 · How strict</h2>
+  <div class="options">
+    <label class="opt">
+      <span>Minimum match</span>
+      <input type="number" id="opt-min" min="0" max="100" step="1" value="80">
+      <small>percent</small>
+    </label>
+    <label class="opt">
+      <span>Max different characters</span>
+      <input type="number" id="opt-maxdist" min="0" step="1" value="35">
+      <small>35 fits a written-out legal form</small>
+    </label>
+    <label class="opt">
+      <span>Candidates per name</span>
+      <input type="number" id="opt-top" min="1" max="20" step="1" value="5">
+      <small>offered during review</small>
+    </label>
+    <label class="opt">
+      <span>&nbsp;</span>
+      <label><input type="checkbox" id="opt-one"> each B row only once</label>
+      <small>for reconciliation</small>
+    </label>
+    <button id="run" disabled>Match</button>
+    <button class="ghost" id="reset">Reset</button>
+  </div>
+
+  <div id="results" hidden>
+    <h2>3 · Result</h2>
+    <div class="tiles" id="tiles"></div>
+
+    <div id="review-wrap" hidden>
+      <h2>4 · Confirm the uncertain ones</h2>
+      <div class="card" id="review" tabindex="0"></div>
+    </div>
+
+    <h2>Everything</h2>
+    <div class="scroll"><table id="table"></table></div>
+    <p style="margin-top:14px">
+      <button id="export-xlsx">Download Excel</button>
+      <button class="ghost" id="export">Download CSV</button>
+      <span class="muted" style="margin-left:8px" id="export-note"></span>
+    </p>
+  </div>
+
+</div>
+<input type="file" id="file-input" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden>
+<script type="module" src="app.js"></script>
+</body>
+</html>
